@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_ee28a5eb_a5a4_4326_928d_248156d0aa9a_Output_Variables_syncStatus = Any
+

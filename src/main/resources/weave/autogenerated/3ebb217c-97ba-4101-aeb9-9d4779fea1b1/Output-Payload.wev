@@ -1,0 +1,8 @@
+%dw 2.0
+
+type auto_3ebb217c_97ba_4101_aeb9_9d4779fea1b1_Output_Payload = {
+  message: String, 
+  timestamp: String, 
+  _?: Any
+}
+

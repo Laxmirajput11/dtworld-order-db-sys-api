@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db 
+http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core 
+http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+
+	<sub-flow name="get-sync-summary-sub-flow">
+
+		<logger
+			level="INFO"
+			doc:name="Log Sync Summary Request"
+
+			message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "Fetching sync summary from database.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+
+		<try doc:name="Try Fetch Sync Summary">
+
+	<db:select
+		config-ref="orders-db-configuration"
+		doc:name="Fetch Sync Summary From Database">
+
+		<db:sql><![CDATA[
+SELECT
+	COUNT(*) AS totalOrders,
+
+	SUM(
+		CASE
+			WHEN syncStatus = 'PENDING'
+			THEN 1
+			ELSE 0
+		END
+	) AS pendingOrders,
+
+	SUM(
+		CASE
+			WHEN syncStatus = 'SUCCESS'
+			THEN 1
+			ELSE 0
+		END
+	) AS syncedOrders,
+
+	SUM(
+		CASE
+			WHEN syncStatus = 'FAILED'
+			THEN 1
+			ELSE 0
+		END
+	) AS failedOrders
+
+FROM ordersStaging
+]]></db:sql>
+
+	</db:select>
+
+	<error-handler>
+
+		<on-error-propagate
+			type="DB:CONNECTIVITY, DB:QUERY_EXECUTION"
+			doc:name="Database Error Handler" enableNotifications="true" logException="true">
+
+			<logger
+				level="ERROR"
+				doc:name="Database Error"
+
+				message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	errorType: "DATABASE_ERROR",
+	errorMessage: error.description,
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+			<set-variable
+				variableName="httpStatus"
+				value="500"
+				doc:name="var: httpStatus 500"/>
+
+			<set-payload
+	value='#[%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Unable to fetch sync summary.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'
+	doc:name="Error Payload"/>
+
+		</on-error-propagate>
+
+	</error-handler>
+
+</try>
+
+		<ee:transform doc:name="Preparing Sync Summary Response">
+
+			<ee:message>
+
+				<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	totalOrders: payload[0].totalOrders,
+	pendingOrders: payload[0].pendingOrders,
+	syncedOrders: payload[0].syncedOrders,
+	failedOrders: payload[0].failedOrders,
+	correlationId: vars.correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+			</ee:message>
+
+		</ee:transform>
+
+
+		<logger
+			level="INFO"
+			doc:name="Log Sync Summary Response"
+
+			message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "Sync summary response sent successfully.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+	</sub-flow>
+
+</mule>

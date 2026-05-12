@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule 
+	xmlns="http://www.mulesoft.org/schema/mule/core" 
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" 
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" 
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" 
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core 
+	http://www.mulesoft.org/schema/mule/core/current/mule.xsd 
+	http://www.mulesoft.org/schema/mule/http 
+	http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+	http://www.mulesoft.org/schema/mule/mule-apikit 
+	http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+	http://www.mulesoft.org/schema/mule/ee/core 
+	http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+    
+        <flow name="dtworld-order-db-sys-api-main">
+		<http:listener
+			config-ref="orders-http-listener-configuration"
+			path="/api/*"
+			doc:name="HTTP Listener">
+			<http:response
+				statusCode="#[vars.httpStatus default 200]"/>
+			<http:error-response
+				statusCode="#[vars.httpStatus default 500]"/>
+		</http:listener>
+
+		<set-variable
+			variableName="correlationId"
+			value='#[attributes.headers."x-correlation-id" default uuid()]'
+			doc:name="Set Correlation Id"/>
+
+		<apikit:router
+			config-ref="dtworld-order-db-sys-api-config"
+			doc:name="APIKit Router"/>
+
+		<error-handler ref="global-error-handler"/>
+
+	</flow>
+	
+    <flow name="delete:\orders:dtworld-order-db-sys-api-config">
+       <flow-ref
+	name="delete-orders-sub-flow"
+	doc:name="delete-orders-sub-flow"/>
+    </flow>
+    <flow name="patch:\orders:application\json:dtworld-order-db-sys-api-config">
+		<flow-ref doc:name="patch-orders-sub-flow" doc:id="032494ce-c452-4345-b145-f5c11c80ca2e" name="patch-orders-sub-flow"/>
+    </flow>
+    <flow name="get:\healthCheck:dtworld-order-db-sys-api-config">
+		<flow-ref doc:name="get-health-check-sub-flow" doc:id="7c5a60f4-8d62-44c1-95f1-7dab445fb82f" name="get-health-check-sub-flow"/>
+    </flow>
+    <flow name="get:\orders:dtworld-order-db-sys-api-config">
+    <flow-ref
+		name="get-orders-sub-flow"
+		doc:name="get-orders-sub-flow"/>
+    </flow>
+    <flow name="get:\sync-summary:dtworld-order-db-sys-api-config">
+		<flow-ref doc:name="get-sync-summary-sub-flow" doc:id="2b9cbf26-c771-4d39-9f32-1b8819376731" name="get-sync-summary-sub-flow"/>
+    </flow>
+    <flow name="post:\orders:application\json:dtworld-order-db-sys-api-config">
+        <flow-ref
+        name="post-orders-sub-flow"
+        doc:name="post-orders-sub-flow"/>
+    </flow>
+</mule>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+    xmlns:db="http://www.mulesoft.org/schema/mule/db"
+    xmlns="http://www.mulesoft.org/schema/mule/core"
+    xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+    xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+		http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+        http://www.mulesoft.org/schema/mule/core 
+        http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+
+        http://www.mulesoft.org/schema/mule/db 
+        http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+	<apikit:config 
+		doc:description="Maps incoming requests to flows based on API spec"
+		api="resource::ce235d46-115c-497c-b0e2-474afd80f5e9:dtworld-order-db-sys-api:1.0.1:raml:zip:dtworld-order-db-sys-api.raml" 
+		outboundHeadersMapName="outboundHeaders" 
+		httpStatusVarName="httpStatus" name="dtworld-order-db-sys-api-config"/>
+
+    <http:listener-config 
+    	name="orders-http-listener-configuration"
+    	doc:name="HTTP Listener Config"
+    	doc:description="Defines inbound HTTP server-host, port, and base path for the API">
+        <http:listener-connection 
+        	host="0.0.0.0" 
+        	port="${http.port}" readTimeout="${http.timeout}" />
+    </http:listener-config>
+    
+    <configuration-properties
+        doc:name="common-configuration-properties"
+        doc:description="Environment Specific Property File"
+        file="properties/config-local.yaml"/>
+        
+    <configuration-properties 
+		doc:name="common-cofiguration-properties" 
+		doc:id="b1754c6b-a3aa-43fd-93c9-52912f860310" 
+		file="properties/config-${mule.env}.yaml" 
+		doc:description="Environment Specific Property File"/>
+
+	<global-property 
+		doc:name="Global Property" 
+		doc:id="c9c39eff-02e6-4858-988e-acb3fceff943" 
+		name="mule.env" value="DEV" 
+		doc:description="TO BE REMOVED" />
+		
+		
+	<global-property 
+		doc:name="Global Property" 
+		doc:id="fed067e7-ea23-442b-8f25-1acb8c317003" 
+		name="mule.key" value="hbs3pX8L077evl4Oax43a3c9" 
+		doc:description="TO BE REMOVED" />
+		
+	<db:config
+        name="orders-db-configuration"
+        doc:name="Database Config"
+        doc:description="Holds MySQL connection details">
+
+        <db:my-sql-connection
+            host="${db.host}"
+            port="${db.port}"
+            user="${db.user}"
+            password="${db.password}"
+            database="${db.database}"/>
+    </db:config>
+    
+		
+	
+		
+		
+</mule>

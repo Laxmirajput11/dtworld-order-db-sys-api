@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+
+	<sub-flow name="patch-orders-sub-flow">
+
+
+		<logger
+			level="INFO"
+			doc:name="Log PATCH Orders Request"
+
+			message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "PATCH orders request received.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+		<db:update
+			config-ref="orders-db-configuration"
+			doc:name="Update Order Sync Status">
+
+			<db:sql><![CDATA[
+UPDATE ordersStaging
+SET
+	syncStatus = :syncStatus,
+	syncMessage = :syncMessage,
+	salesforceId = :salesforceId,
+	updatedAt = NOW()
+WHERE orderId = :orderId
+]]></db:sql>
+
+
+			<db:input-parameters><![CDATA[
+#[{
+	orderId: payload.orderId,
+
+	syncStatus: payload.syncStatus,
+
+	syncMessage:
+		if(payload.syncStatus == "SUCCESS")
+			"Orders synced successfully to Salesforce."
+		else
+			"Orders sync failed.",
+
+	salesforceId:
+		if(payload.syncStatus == "SUCCESS")
+			"SF-" ++ (now() as String {format: "yyyyMMddHHmmss"})
+		else
+			null
+}]
+]]></db:input-parameters>
+
+		</db:update>
+
+
+		<choice doc:name="isRowUpdated?">
+
+
+			<!-- ORDER NOT FOUND -->
+
+
+			<when expression="#[payload.affectedRows == 0]">
+
+				<set-variable
+					variableName="httpStatus"
+					value="404"
+					doc:name="var: httpStatus 404"/>
+
+
+				<ee:transform doc:name="Preparing Order Not Found Response">
+
+					<ee:message>
+
+						<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Order not found.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+					</ee:message>
+
+				</ee:transform>
+
+
+				<logger
+					level="INFO"
+					doc:name="Order Not Found Response"
+
+					message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "PATCH failed. Order not found.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+			</when>
+
+
+			<!-- SUCCESS RESPONSE -->
+
+
+			<otherwise>
+
+				<set-variable
+					variableName="httpStatus"
+					value="200"
+					doc:name="var: httpStatus 200"/>
+
+
+				<ee:transform doc:name="Preparing Patch Orders Response">
+
+					<ee:message>
+
+						<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: true,
+	message: "Orders sync status updated successfully.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+					</ee:message>
+
+				</ee:transform>
+
+
+				<logger
+					level="INFO"
+					doc:name="Patch Orders Response Sent"
+
+					message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "PATCH orders response sent successfully.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+			</otherwise>
+
+		</choice>
+
+
+	</sub-flow>
+
+</mule>

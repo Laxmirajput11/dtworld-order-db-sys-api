@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db 
+http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core 
+http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+
+	<sub-flow name="post-orders-sub-flow">
+
+		<logger
+			level="INFO"
+			doc:name="Log POST Orders Request"
+
+			message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "POST orders request received.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+
+		<ee:transform doc:name="Preparing Orders Payload">
+
+			<ee:message>
+
+				<ee:set-payload><![CDATA[
+%dw 2.0
+output application/java
+---
+payload map (item) -> {
+	orderId: item.orderId,
+	customerName: item.customerName,
+	customerEmail: item.customerEmail,
+	productName: item.productName,
+	quantity: item.quantity,
+	orderAmount: item.orderAmount,
+	currency: item.currency,
+	orderStatus: item.orderStatus,
+	sourceSystem: item.sourceSystem,
+	orderCreatedAt: now(),
+	ingestionStatus: "INGESTED",
+	syncStatus: "PENDING",
+	fileName: item.fileName
+}
+]]></ee:set-payload>
+
+			</ee:message>
+
+		</ee:transform>
+
+
+		<try doc:name="Try Insert Orders">
+
+			<db:bulk-insert
+				config-ref="orders-db-configuration"
+				doc:name="Insert Orders Into Database">
+
+				<db:sql><![CDATA[
+INSERT INTO ordersStaging
+(
+	orderId,
+	customerName,
+	customerEmail,
+	productName,
+	quantity,
+	orderAmount,
+	currency,
+	orderStatus,
+	sourceSystem,
+	orderCreatedAt,
+	ingestionStatus,
+	syncStatus,
+	fileName
+)
+VALUES
+(
+	:orderId,
+	:customerName,
+	:customerEmail,
+	:productName,
+	:quantity,
+	:orderAmount,
+	:currency,
+	:orderStatus,
+	:sourceSystem,
+	:orderCreatedAt,
+	:ingestionStatus,
+	:syncStatus,
+	:fileName
+)
+]]></db:sql>
+
+			</db:bulk-insert>
+
+
+			<error-handler>
+
+				<on-error-continue
+					type="DB:QUERY_EXECUTION"
+					doc:name="Duplicate Order Error Handler">
+
+					<logger
+						level="ERROR"
+						doc:name="Duplicate Order"
+
+						message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	errorType: "DUPLICATE_ORDER",
+	errorMessage: error.description,
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+
+					<set-variable
+						variableName="httpStatus"
+						value="409"
+						doc:name="var: httpStatus"/>
+
+
+					<set-payload
+						value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	success: false,&#10;	message: "Order already exists.",&#10;	correlationId: vars.correlationId,&#10;	timestamp: now()&#10;}]'
+						doc:name="Duplicate Response Payload"/>
+
+				</on-error-continue>
+
+			</error-handler>
+
+		</try>
+		<choice doc:name="isDuplicate?">
+
+	<when expression="#[payload.success == false]">
+		<logger 
+	level="INFO" 
+	doc:name="Duplicate Order Response "
+
+	message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "Duplicate order response sent.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+	</when>
+
+	<otherwise>
+
+		<ee:transform doc:name="Preparingg Post Orders Response">
+			<ee:message>
+				<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: true,
+	message: "Orders inserted successfully.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger
+	level="ERROR"
+	doc:name="Post Orders Response"
+
+	message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "POST orders response sent successfully.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+	</otherwise>
+
+</choice>
+
+	</sub-flow>
+
+</mule>

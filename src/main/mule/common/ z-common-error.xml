@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+	http://www.mulesoft.org/schema/mule/core 
+	http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+	http://www.mulesoft.org/schema/mule/ee/core 
+	http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<error-handler name="global-error-handler">
+
+		<!-- ====================================================== -->
+		<!-- 400 BAD REQUEST                                        -->
+		<!-- ====================================================== -->
+
+		<on-error-propagate
+			type="APIKIT:BAD_REQUEST"
+			doc:name="400 Bad Request">
+
+			<logger
+				level="ERROR"
+				doc:name="Bad Request "
+
+				message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	errorType: "BAD_REQUEST",
+	message: "Invalid request received.",
+	correlationId: correlationId,
+	timestamp: now()
+}]'/>
+
+			<ee:transform doc:name="Preparing 400 Response">
+
+				<ee:message>
+
+					<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Bad request.",
+	correlationId: correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+					<ee:set-attributes><![CDATA[
+%dw 2.0
+output application/java
+---
+{
+	statusCode: 400
+}
+]]></ee:set-attributes>
+
+				</ee:message>
+
+			</ee:transform>
+
+		</on-error-propagate>
+
+
+
+		<!-- ====================================================== -->
+		<!-- 404 NOT FOUND                                          -->
+		<!-- ====================================================== -->
+
+		<on-error-propagate
+	type="APIKIT:NOT_FOUND"
+	doc:name="404 Not Found">
+
+	<logger
+		level="ERROR"
+		doc:name="Not Found Logger"
+
+		message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	errorType: "NOT_FOUND",
+	message: "Requested resource not found.",
+	correlationId: correlationId,
+	timestamp: now()
+}]'/>
+
+	<ee:transform doc:name="Preparing 404 Response">
+
+		<ee:message>
+
+			<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Resource not found.",
+	correlationId: correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+		</ee:message>
+
+	</ee:transform>
+
+</on-error-propagate>
+
+
+
+		<!-- ====================================================== -->
+		<!-- 405 METHOD NOT ALLOWED                                 -->
+		<!-- ====================================================== -->
+
+		<on-error-propagate
+			type="APIKIT:METHOD_NOT_ALLOWED"
+			doc:name="405 Method Not Allowed">
+
+			<logger
+				level="ERROR"
+				doc:name="405 "
+
+				message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	errorType: "METHOD_NOT_ALLOWED",
+	message: "HTTP method not allowed.",
+	correlationId: correlationId,
+	timestamp: now()
+}]'/>
+
+			<ee:transform doc:name="Preparing 405 Response">
+
+				<ee:message>
+
+					<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Method not allowed.",
+	correlationId: correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+					<ee:set-attributes><![CDATA[
+%dw 2.0
+output application/java
+---
+{
+	statusCode: 405
+}
+]]></ee:set-attributes>
+
+				</ee:message>
+
+			</ee:transform>
+
+		</on-error-propagate>
+
+
+
+		<!-- ====================================================== -->
+		<!-- DATABASE ERROR                                         -->
+		<!-- ====================================================== -->
+
+		<on-error-propagate
+			type="DB:*"
+			doc:name="Database Error">
+
+			<logger
+				level="ERROR"
+				doc:name="DB Error"
+
+				message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	errorType: "DATABASE_ERROR",
+	message: error.description,
+	correlationId: correlationId,
+	timestamp: now()
+}]'/>
+
+			<ee:transform doc:name="Preparing DB Error Response">
+
+				<ee:message>
+
+					<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Database operation failed.",
+	correlationId: correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+					<ee:set-attributes><![CDATA[
+%dw 2.0
+output application/java
+---
+{
+	statusCode: 500
+}
+]]></ee:set-attributes>
+
+				</ee:message>
+
+			</ee:transform>
+
+		</on-error-propagate>
+
+
+
+		<!-- ====================================================== -->
+		<!-- GENERIC ERROR                                          -->
+		<!-- ====================================================== -->
+
+		<on-error-propagate
+			type="ANY"
+			doc:name="Global Error Handler">
+
+			<logger
+				level="ERROR"
+				doc:name="Generic Error "
+
+				message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	errorType: "INTERNAL_SERVER_ERROR",
+	message: error.description,
+	correlationId: correlationId,
+	timestamp: now()
+}]'/>
+
+			<ee:transform doc:name="Preparing Generic Error Response">
+
+				<ee:message>
+
+					<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Internal server error.",
+	correlationId: correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+					<ee:set-attributes><![CDATA[
+%dw 2.0
+output application/java
+---
+{
+	statusCode: 500
+}
+]]></ee:set-attributes>
+
+				</ee:message>
+
+			</ee:transform>
+
+		</on-error-propagate>
+
+	</error-handler>
+
+</mule>

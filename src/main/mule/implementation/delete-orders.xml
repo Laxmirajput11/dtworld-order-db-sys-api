@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db 
+http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core 
+http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+
+<sub-flow name="delete-orders-sub-flow">
+
+	<logger
+		level="INFO"
+		doc:name="Log DELETE Orders Request"
+
+		message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	correlationId: vars.correlationId,
+	message: "DELETE orders request received.",
+	orderId: attributes.queryParams.orderId,
+	timestamp: now()
+}]'/>
+
+
+	<db:delete
+		config-ref="orders-db-configuration"
+		doc:name="Delete Orders From Database">
+
+		<db:sql><![CDATA[
+DELETE FROM ordersStaging
+WHERE orderId = :orderId
+]]></db:sql>
+
+		<db:input-parameters><![CDATA[
+#[{
+	orderId: attributes.queryParams.orderId as String
+}]
+]]></db:input-parameters>
+
+	</db:delete>
+
+
+	<choice doc:name="isOrderDeleted?">
+
+		<!-- Order Not Found -->
+
+		<when expression="#[payload.affectedRows == 0]">
+
+			<set-variable
+				variableName="httpStatus"
+				value="404"
+				doc:name="var: httpStatus 404"/>
+
+
+			<ee:transform doc:name="Preparing Order Not Found Response">
+
+				<ee:message>
+
+					<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "Order not found.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+				</ee:message>
+
+			</ee:transform>
+
+		</when>
+
+
+		<!-- Success Response -->
+
+		<otherwise>
+
+			<set-variable
+				variableName="httpStatus"
+				value="200"
+				doc:name="var: httpStatus 200"/>
+
+
+			<ee:transform doc:name="Preparing Delete Orders Response">
+
+				<ee:message>
+
+					<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: true,
+	message: "Order deleted successfully.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+				</ee:message>
+
+			</ee:transform>
+
+		</otherwise>
+
+	</choice>
+
+
+	<logger
+		level="INFO"
+		doc:name="Log DELETE Orders Response"
+
+		message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	correlationId: vars.correlationId,
+	message: "DELETE orders response sent successfully.",
+	timestamp: now()
+}]'/>
+
+</sub-flow>
+
+</mule>

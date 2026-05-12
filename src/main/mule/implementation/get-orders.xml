@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db 
+http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core 
+http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+
+	<sub-flow name="get-orders-sub-flow">
+
+
+		<!-- ===================================================== -->
+		<!-- REQUEST LOGGER -->
+		<!-- ===================================================== -->
+
+
+		<logger
+			level="INFO"
+			doc:name="Log GET Orders Request"
+
+			message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "Fetching orders from orders staging table.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+
+		<!-- ===================================================== -->
+		<!-- FETCH ORDERS -->
+		<!-- ===================================================== -->
+
+
+		<db:select
+			config-ref="orders-db-configuration"
+			doc:name="Fetch Orders From Database">
+
+			<db:sql><![CDATA[
+SELECT
+	id,
+	orderId,
+	customerName,
+	customerEmail,
+	productName,
+	quantity,
+	orderAmount,
+	currency,
+	orderStatus,
+	sourceSystem,
+	orderCreatedAt,
+	orderCancelledAt,
+	ingestionStatus,
+	syncStatus,
+	syncMessage,
+	salesforceId,
+	fileName,
+	createdAt,
+	updatedAt
+FROM ordersStaging
+]]></db:sql>
+
+		</db:select>
+
+
+		<!-- ===================================================== -->
+		<!-- CHECK EMPTY RESPONSE -->
+		<!-- ===================================================== -->
+
+
+		<choice doc:name="isOrdersPayloadEmpty?">
+
+
+			<!-- NO ORDERS FOUND -->
+
+
+			<when expression="#[isEmpty(payload)]">
+
+				<set-variable
+					variableName="httpStatus"
+					value="404"
+					doc:name="var: httpStatus 404"/>
+
+
+				<ee:transform doc:name="Preparing No Orders Found Response">
+
+					<ee:message>
+
+						<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: false,
+	message: "No orders found.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}
+]]></ee:set-payload>
+
+					</ee:message>
+
+				</ee:transform>
+
+
+				<logger
+					level="INFO"
+					doc:name="Log No Orders Found "
+
+					message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "No orders found.",
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+			</when>
+
+
+			<!-- SUCCESS RESPONSE -->
+
+
+			<otherwise>
+
+				<set-variable
+					variableName="httpStatus"
+					value="200"
+					doc:name="var: httpStatus 200"/>
+
+
+				<ee:transform doc:name="Preparing Get Orders Response">
+
+					<ee:message>
+
+						<ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+	success: true,
+	message: "Orders fetched successfully.",
+	totalRecords: sizeOf(payload),
+	correlationId: vars.correlationId,
+	data: payload
+}
+]]></ee:set-payload>
+
+					</ee:message>
+
+				</ee:transform>
+
+
+				<logger
+					level="INFO"
+					doc:name="Log GET Orders Response"
+
+					message='#[%dw 2.0
+output application/json
+---
+{
+	appName: app.name,
+	flowName: flow.name,
+	message: "Orders fetched successfully.",
+	totalRecords: payload.totalRecords,
+	correlationId: vars.correlationId,
+	timestamp: now()
+}]'/>
+
+			</otherwise>
+
+		</choice>
+
+
+	</sub-flow>
+
+</mule>
