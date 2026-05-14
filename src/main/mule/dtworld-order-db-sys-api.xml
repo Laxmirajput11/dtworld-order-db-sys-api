@@ -44,8 +44,8 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	
     <flow name="delete:\orders:dtworld-order-db-sys-api-config">
        <flow-ref
-	name="delete-orders-sub-flow"
-	doc:name="delete-orders-sub-flow"/>
+	name="delete-bulk-orders-sub-flow"
+	doc:name="delete-bulk-orders-sub-flow" doc:id="f178bcfd-1363-423e-8b78-58cdfd99b2e7"/>
     </flow>
     <flow name="patch:\orders:application\json:dtworld-order-db-sys-api-config">
 		<flow-ref doc:name="patch-orders-sub-flow" doc:id="032494ce-c452-4345-b145-f5c11c80ca2e" name="patch-orders-sub-flow"/>

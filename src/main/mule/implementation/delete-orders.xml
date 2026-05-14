@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/ee/core
 http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
 
-<sub-flow name="delete-orders-sub-flow">
+<sub-flow name="delete-bulk-orders-sub-flow" doc:id="4072e277-26dd-4930-b34a-6f0d8c6e5a55">
 
 	<logger
 		level="INFO"
@@ -36,22 +36,14 @@ output application/json
 }]'/>
 
 
-	<db:delete
-		config-ref="orders-db-configuration"
-		doc:name="Delete Orders From Database">
-
-		<db:sql><![CDATA[
-DELETE FROM ordersStaging
-WHERE orderId = :orderId
-]]></db:sql>
-
-		<db:input-parameters><![CDATA[
-#[{
+	<db:bulk-delete doc:name="Delete Orders From Database" doc:id="044f2143-557b-40fb-a078-aea5b5db5fe8" config-ref="orders-db-configuration">
+			<db:bulk-input-parameters ><![CDATA[#[[{
 	orderId: attributes.queryParams.orderId as String
-}]
-]]></db:input-parameters>
-
-	</db:delete>
+}]]]]></db:bulk-input-parameters>
+			<db:sql ><![CDATA[
+DELETE FROM ordersStaging
+WHERE orderId = :orderId]]></db:sql>
+		</db:bulk-delete>
 
 
 	<choice doc:name="isOrderDeleted?">
