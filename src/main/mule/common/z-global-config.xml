@@ -59,7 +59,11 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<db:config
     	name="orders-db-configuration"
     	doc:name="Database Config">
-		<db:my-sql-connection host="mysql-211547-0.cloudclusters.net" port="10004" user="admin" password="Mule@1234" database="dtworldOrderManagementDb" />
+		<db:my-sql-connection 
+			host="mysql-211547-0.cloudclusters.net" 
+			port="10004" user="admin" 
+			password="Mule@1234" 
+			database="dtworldOrderManagementDb" />
 		
 
 	</db:config>

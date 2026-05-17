@@ -43,19 +43,19 @@ output application/json
 output application/json
 ---
 payload map (item) -> {
-	orderId: item.orderId,
-	customerName: item.customerName,
-	customerEmail: item.customerEmail,
-	productName: item.productName,
-	quantity: item.quantity,
-	orderAmount: item.orderAmount,
-	currency: item.currency,
-	orderStatus: item.orderStatus,
-	sourceSystem: item.sourceSystem,
-	orderCreatedAt: now(),
-	ingestionStatus: "INGESTED",
-	syncStatus: "PENDING",
-	fileName: item.fileName
+    orderId: item.orderId,
+    customerName: item.customerName,
+    customerEmail: item.customerEmail,
+    productName: item.productName,
+    quantity: item.quantity,
+    orderAmount: item.orderAmount,
+    currency: item.currency,
+    orderStatus: item.orderStatus,
+    sourceSystem: item.sourceSystem,
+    orderCreatedAt: item.orderCreatedAt,
+    ingestionStatus: "INGESTED",
+    syncStatus: "PENDING",
+    fileName: item.fileName
 }]]></ee:set-payload>
 
 			</ee:message>
@@ -69,7 +69,7 @@ payload map (item) -> {
 				config-ref="orders-db-configuration"
 				doc:name="Insert Orders Into Database">
 
-				<db:bulk-input-parameters ><![CDATA[#[#[payload]]]]></db:bulk-input-parameters>
+				<db:bulk-input-parameters><![CDATA[#[payload]]]></db:bulk-input-parameters>
 				<db:sql><![CDATA[
 INSERT INTO ordersStaging
 (
