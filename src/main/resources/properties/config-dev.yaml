@@ -1,0 +1,19 @@
+db:
+  host: "mysql-211547-0.cloudclusters.net"
+  port: "10004"
+  user: "admin"
+  password: "Mule@1234"
+  database: "dtworldOrderManagementDb"
+  
+  
+http:
+  port: "8081"
+  timeout: "30000"
+  
+
+sftp:
+  host: "us-east-1.sftpcloud.io"
+  port: "22"
+  username: "30c972f1f534459ab173991401abf842"
+  password: "5K1i56stPAjNlGcLMCvNrnESa45zwvFj"
+  directory: "/incoming-orders"

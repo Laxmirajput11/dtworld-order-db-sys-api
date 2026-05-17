@@ -48,7 +48,6 @@ WHERE orderId = :orderId]]></db:sql>
 
 	<choice doc:name="isOrderDeleted?">
 
-		<!-- Order Not Found -->
 
 		<when expression="#[payload.affectedRows == 0]">
 
@@ -80,8 +79,6 @@ output application/json
 
 		</when>
 
-
-		<!-- Success Response -->
 
 		<otherwise>
 

@@ -19,12 +19,6 @@ http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
 	<sub-flow name="get-orders-sub-flow">
 
-
-		<!-- ===================================================== -->
-		<!-- REQUEST LOGGER -->
-		<!-- ===================================================== -->
-
-
 		<logger
 			level="INFO"
 			doc:name="Log GET Orders Request"
@@ -39,12 +33,6 @@ output application/json
 	correlationId: vars.correlationId,
 	timestamp: now()
 }]'/>
-
-
-		<!-- ===================================================== -->
-		<!-- FETCH ORDERS -->
-		<!-- ===================================================== -->
-
 
 		<db:select
 			config-ref="orders-db-configuration"
@@ -76,17 +64,7 @@ FROM ordersStaging
 
 		</db:select>
 
-
-		<!-- ===================================================== -->
-		<!-- CHECK EMPTY RESPONSE -->
-		<!-- ===================================================== -->
-
-
 		<choice doc:name="isOrdersPayloadEmpty?">
-
-
-			<!-- NO ORDERS FOUND -->
-
 
 			<when expression="#[isEmpty(payload)]">
 
@@ -133,10 +111,6 @@ output application/json
 }]'/>
 
 			</when>
-
-
-			<!-- SUCCESS RESPONSE -->
-
 
 			<otherwise>
 

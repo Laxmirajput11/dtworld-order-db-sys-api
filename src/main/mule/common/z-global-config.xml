@@ -46,7 +46,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<global-property 
 		doc:name="Global Property" 
 		doc:id="c9c39eff-02e6-4858-988e-acb3fceff943" 
-		name="mule.env" value="DEV" 
+		name="mule.env" value="dev" 
 		doc:description="TO BE REMOVED" />
 		
 		
@@ -57,17 +57,12 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		doc:description="TO BE REMOVED" />
 		
 	<db:config
-        name="orders-db-configuration"
-        doc:name="Database Config"
-        doc:description="Holds MySQL connection details">
+    	name="orders-db-configuration"
+    	doc:name="Database Config">
+		<db:my-sql-connection host="mysql-211547-0.cloudclusters.net" port="10004" user="admin" password="Mule@1234" database="dtworldOrderManagementDb" />
+		
 
-        <db:my-sql-connection
-            host="${db.host}"
-            port="${db.port}"
-            user="${db.user}"
-            password="${db.password}"
-            database="${db.database}"/>
-    </db:config>
+	</db:config>
     
 		
 	

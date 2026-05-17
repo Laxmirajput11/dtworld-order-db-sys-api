@@ -32,7 +32,7 @@ output application/json
 }]'/>
 
 		<set-variable value="#[payload]" doc:name="var: requestPayload" doc:id="12bb9e0f-e7c9-4dcd-97b8-133ff70798a6" variableName="requestPayload"/>
-		<db:select doc:name="Fetch Order Data" doc:id="fd8f53c2-0d43-4fd5-833d-1eee294a34fa" config-ref="orders-db-configuration">
+		<!-- [STUDIO:"Fetch Order Data"]<db:select doc:name="Fetch Order Data" doc:id="fd8f53c2-0d43-4fd5-833d-1eee294a34fa" config-ref="orders-db-configuration">
 			<db:sql><![CDATA[SELECT
     orderId,
     orderPlacedAt,
@@ -40,24 +40,24 @@ output application/json
     syncStatus
 	FROM ordersStaging
 	WHERE orderId = :orderId
-			]]></db:sql>
+			&#93;&#93;></db:sql>
 
     <db:input-parameters><![CDATA[#[{
         orderId: vars.requestPayload.orderId
-    }]]]></db:input-parameters>
+    }&#93;&#93;&#93;></db:input-parameters>
     
-		</db:select>
-		<set-variable value="#[payload[0]]" doc:name="var: existingOrder" doc:id="9d41ac4d-a5a7-4ac0-988e-0761730c150f" variableName="existingOrder"/>
-		<choice doc:name="durationInBetween?" doc:id="479f5918-7dee-47c3-807c-45c94f830df5" >
-			<when expression='#[%dw 2.0&#10;output application/java&#10;&#10;var placedAt =&#10;    if(vars.existingOrder.orderPlacedAt != null)&#10;        vars.existingOrder.orderPlacedAt as DateTime&#10;    else&#10;        null&#10;&#10;var cancelledAt =&#10;    if(vars.requestPayload.orderCancelledAt != null)&#10;        vars.requestPayload.orderCancelledAt as DateTime&#10;    else&#10;        null&#10;&#10;var diffHours =&#10;    if(placedAt != null and cancelledAt != null)&#10;        durationBetween(placedAt, cancelledAt).hours&#10;    else&#10;        9&#10;&#10;---&#10;(vars.requestPayload.status == "CANCELLED")&#10;and&#10;(diffHours &lt; 6)]'>
+		</db:select> [STUDIO] -->
+		<!-- [STUDIO:"var: existingOrder"]<set-variable value="#[payload[0&#93;&#93;" doc:name="var: existingOrder" doc:id="9d41ac4d-a5a7-4ac0-988e-0761730c150f" variableName="existingOrder"/> [STUDIO] -->
+		<!-- [STUDIO:"durationInBetween?"]<choice doc:name="durationInBetween?" doc:id="479f5918-7dee-47c3-807c-45c94f830df5" >
+			<when expression='#[%dw 2.0&#10;output application/java&#10;&#10;var placedAt =&#10;    if(vars.existingOrder.orderPlacedAt != null)&#10;        vars.existingOrder.orderPlacedAt as DateTime&#10;    else&#10;        null&#10;&#10;var cancelledAt =&#10;    if(vars.requestPayload.orderCancelledAt != null)&#10;        vars.requestPayload.orderCancelledAt as DateTime&#10;    else&#10;        null&#10;&#10;var diffHours =&#10;    if(placedAt != null and cancelledAt != null)&#10;        durationBetween(placedAt, cancelledAt).hours&#10;    else&#10;        9&#10;&#10;&#45;&#45;-&#10;(vars.requestPayload.status == "CANCELLED")&#10;and&#10;(diffHours &lt; 6)&#93;'>
 				<set-variable value="SKIPPED" doc:name="var: syncStatus" doc:id="28453c26-e92d-4874-8374-6bb9f44a41b9" variableName="syncStatus"/>
 			</when>
 			<otherwise >
 				<set-variable
-    				value="#[vars.requestPayload.syncStatus]"
+    				value="#[vars.requestPayload.syncStatus&#93;"
     				variableName="syncStatus" doc:name="var: syncStatus"/>
 			</otherwise>
-		</choice>
+		</choice> [STUDIO] -->
 		<db:update
 			config-ref="orders-db-configuration"
 			doc:name="Update Order Sync Status">
@@ -71,14 +71,10 @@ SET
 WHERE orderId = :orderId]]></db:sql>
 
 
-			<db:input-parameters><![CDATA[#[{
-    syncStatus: vars.syncStatus,
+			<db:input-parameters><![CDATA[#[[{
+    syncStatus: vars.requestPayload.syncStatus,
 
-    syncMessage:
-        if(vars.syncStatus == "SKIPPED")
-            "Order cancelled within 6 hours"
-        else
-            "Normal processing",
+    syncMessage: vars.requestPayload.syncMessage,
 
     salesforceId:
         if(vars.requestPayload.salesforceId != null)
@@ -87,16 +83,12 @@ WHERE orderId = :orderId]]></db:sql>
             null,
 
     orderId: vars.requestPayload.orderId
-}]]]></db:input-parameters>
+}]]]]></db:input-parameters>
 
 		</db:update>
 
 
 		<choice doc:name="isRowUpdated?">
-
-
-			<!-- ORDER NOT FOUND -->
-
 
 			<when expression="#[payload.affectedRows == 0]">
 
@@ -109,18 +101,7 @@ WHERE orderId = :orderId]]></db:sql>
 				<ee:transform doc:name="Preparing Order Not Found Response">
 
 					<ee:message>
-
-						<ee:set-payload><![CDATA[
-%dw 2.0
-output application/json
----
-{
-	success: false,
-	message: "Order not found.",
-	correlationId: vars.correlationId,
-	timestamp: now()
-}
-]]></ee:set-payload>
+						<ee:set-payload resource="dwl/p_orderNotFound.dwl" />
 
 					</ee:message>
 
@@ -143,10 +124,6 @@ output application/json
 }]'/>
 
 			</when>
-
-
-			<!-- SUCCESS RESPONSE -->
-
 
 			<otherwise>
 

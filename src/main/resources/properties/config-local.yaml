@@ -1,9 +1,9 @@
 db:
-  host: localhost
-  port: "3306"
-  user: root
-  password: Mule@1234
-  database: dtworldOrderManagementDb
+  host: "mysql-211547-0.cloudclusters.net"
+  port: "10004"
+  user: "admin"
+  password: "Mule@1234"
+  database: "dtworldOrderManagementDb"
   
   
 http:
